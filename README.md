@@ -23,8 +23,8 @@ discord-it-exam-bot
 
 1. **Clone the repository:**
    ```
-   git clone <repository-url>
-   cd discord-it-exam-bot
+   git clone https://github.com/Madoa5561/Discord-FE-bot
+   cd Discord-FE-bot
    ```
 
 2. **Install dependencies:**
