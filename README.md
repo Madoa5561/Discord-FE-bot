@@ -1,4 +1,4 @@
-# Discord IT Exam Bot
+# Discord-FE-bot
 
 This project is a Discord bot designed to manage a question set for the Information Technology Engineer Examination. The bot posts a daily question at midnight to a specified channel, allowing users to interact with the question through buttons for their answers. It tracks responses and mentions the fastest responder.
 
@@ -37,6 +37,8 @@ discord-it-exam-bot
    Create a `.env` file in the root directory and add your Discord bot token:
    ```
    DISCORD_TOKEN=your_token_here
+   CHANNEL_ID=discord_channelId
+   DAILY_COUNT=5
    ```
 
 4. **Add questions:**
