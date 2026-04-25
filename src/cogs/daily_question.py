@@ -5,7 +5,15 @@ from datetime import time, timezone, timedelta
 from utils.question_manager import get_today_question
 
 JST = timezone(timedelta(hours=9))
-DAILY_TIME = time(hour=0, minute=0, tzinfo=JST)
+
+# 1回: 0:00
+# 3回: 0:00, 12:00, 16:00
+# 5回: 0:00, 6:00, 12:00, 16:00, 18:00
+SCHEDULE_MAP = {
+    1: [time(0, 0, tzinfo=JST)],
+    3: [time(0, 0, tzinfo=JST), time(12, 0, tzinfo=JST), time(16, 0, tzinfo=JST)],
+    5: [time(0, 0, tzinfo=JST), time(6, 0, tzinfo=JST), time(12, 0, tzinfo=JST), time(16, 0, tzinfo=JST), time(18, 0, tzinfo=JST)],
+}
 
 
 class AnswerView(ui.View):
@@ -78,20 +86,21 @@ class ShowAnswerButton(ui.Button):
 
 
 class DailyQuestion(commands.Cog):
-    def __init__(self, bot: commands.Bot, channel_id: int):
+    def __init__(self, bot: commands.Bot, channel_id: int, daily_count: int):
         self.bot = bot
         self.channel_id = channel_id
+        times = SCHEDULE_MAP.get(daily_count, SCHEDULE_MAP[1])
+        self.daily_task = tasks.loop(time=times)(self._task_body)
+        self.daily_task.before_loop(self._before_loop)
         self.daily_task.start()
 
     def cog_unload(self):
         self.daily_task.cancel()
 
-    @tasks.loop(time=DAILY_TIME)
-    async def daily_task(self):
+    async def _task_body(self):
         await self.post_question()
 
-    @daily_task.before_loop
-    async def before_daily(self):
+    async def _before_loop(self):
         await self.bot.wait_until_ready()
 
     async def post_question(self):
@@ -115,5 +124,5 @@ class DailyQuestion(commands.Cog):
         view.message = message
 
 
-async def setup(bot: commands.Bot, channel_id: int):
-    await bot.add_cog(DailyQuestion(bot, channel_id))
+async def setup(bot: commands.Bot, channel_id: int, daily_count: int):
+    await bot.add_cog(DailyQuestion(bot, channel_id, daily_count))
