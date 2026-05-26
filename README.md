@@ -5,7 +5,7 @@ This project is a Discord bot designed to manage a question set for the Informat
 ## Project Structure
 
 ```
-discord-it-exam-bot
+Discord-FE-bot
 ├── src
 │   ├── main.py                # Entry point of the Discord bot
 │   ├── cogs
