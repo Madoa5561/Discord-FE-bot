@@ -1,58 +1,58 @@
 # Discord-FE-bot
 
-This project is a Discord bot designed to manage a question set for the Information Technology Engineer Examination. The bot posts a daily question at midnight to a specified channel, allowing users to interact with the question through buttons for their answers. It tracks responses and mentions the fastest responder.
+このプロジェクトは、情報技術者試験の問題セットを管理するために設計されたDiscordボットです。ボットは毎日午前0時に指定されたチャンネルに問題を投稿し、ユーザーがボタンを使用して回答と対話できるようにします。回答を追跡し、最速の回答者を表示します。
 
-## Project Structure
+## プロジェクト構造
 
 ```
 Discord-FE-bot
 ├── src
-│   ├── main.py                # Entry point of the Discord bot
+│   ├── main.py                # Discordボットのエントリーポイント
 │   ├── cogs
-│   │   └── daily_question.py   # Logic for posting daily questions
+│   │   └── daily_question.py   # 日常の問題投稿ロジック
 │   ├── utils
-│   │   └── question_manager.py  # Handles loading and management of questions
+│   │   └── question_manager.py  # 問題の読み込みと管理を処理
 │   └── data
-│       └── questions.json      # Stores questions, options, and explanations
-├── .env                        # Environment variables for the bot
-├── requirements.txt            # List of dependencies
-└── README.md                   # Documentation for the project
+│       └── questions.json      # 問題、オプション、説明を保存
+├── .env                        # ボットの環境変数
+├── requirements.txt            # 依存関係のリスト
+└── README.md                   # プロジェクトのドキュメント
 ```
 
-## Setup Instructions
+## セットアップ手順
 
-1. **Clone the repository:**
+1. **リポジトリをクローン:**
    ```
    git clone https://github.com/Madoa5561/Discord-FE-bot
    cd Discord-FE-bot
    ```
 
-2. **Install dependencies:**
-   Make sure you have Python 3.8 or higher installed. Then, run:
+2. **依存関係をインストール:**
+   Python 3.8以上がインストールされていることを確認してから、以下を実行してください:
    ```
    pip install -r requirements.txt
    ```
 
-3. **Set up environment variables:**
-   Create a `.env` file in the root directory and add your Discord bot token:
+3. **環境変数を設定:**
+   ルートディレクトリに`.env`ファイルを作成し、Discordボットトークンを追加してください:
    ```
    DISCORD_TOKEN=your_token_here
    CHANNEL_ID=discord_channelId
    DAILY_COUNT=5
    ```
 
-4. **Add questions:**
-   Edit the `src/data/questions.json` file to include your questions, options, and explanations.
+4. **質問を追加:**
+   `src/data/questions.json`ファイルを編集して、質問、オプション、説明を含めてください。
 
-## Usage
+## 使用方法
 
-To run the bot, execute the following command:
+ボットを実行するには、以下のコマンドを実行してください:
 ```
 python src/main.py
 ```
 
-The bot will start and post a question daily at midnight in the specified channel. Users can respond to the question using the provided buttons, and the bot will mention the fastest responder.
+ボットが起動し、毎日午前0時に指定されたチャンネルに問題を投稿します。ユーザーは提供されたボタンを使用して問題に回答でき、ボットは最速の回答者を表示します。
 
-## Contributing
+## 貢献
 
-Feel free to submit issues or pull requests for improvements or bug fixes.
+改善やバグ修正のためのイシューやプルリクエストを自由に送信してください。
