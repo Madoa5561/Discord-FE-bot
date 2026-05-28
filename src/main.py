@@ -10,7 +10,12 @@ sys.path.insert(0, os.path.dirname(__file__))
 load_dotenv(os.path.join(os.path.dirname(__file__), "../.env"))
 
 TOKEN = os.getenv("DISCORD_TOKEN")
-CHANNEL_ID = int(os.getenv("CHANNEL_ID"))
+if not TOKEN:
+    raise ValueError("DISCORD_TOKEN が .env に設定されていません")
+_raw_channel_id = os.getenv("CHANNEL_ID")
+if not _raw_channel_id:
+    raise ValueError("CHANNEL_ID が .env に設定されていません")
+CHANNEL_ID = int(_raw_channel_id)
 DAILY_COUNT = int(os.getenv("DAILY_COUNT", "1"))
 if DAILY_COUNT not in (1, 3, 5):
     raise ValueError(f"DAILY_COUNT must be 1, 3, or 5, got {DAILY_COUNT}")

@@ -41,7 +41,7 @@ class AnswerButton(ui.Button):
 
     async def callback(self, interaction: discord.Interaction):
         message_id = interaction.message.id
-        state = get_view_state(message_id)
+        state = await get_view_state(message_id)
         if state is None:
             await interaction.response.send_message(
                 "この質問の情報が見つかりません。", ephemeral=True
@@ -72,7 +72,7 @@ class AnswerButton(ui.Button):
             new_content = f"{base_content}\n\n🏆 **正答ランキング**\n{ranking_lines}"
             await interaction.message.edit(content=new_content)
 
-        save_view_state(message_id, state["question_id"], answered_users, top_user_ids)
+        await save_view_state(message_id, state["question_id"], answered_users, top_user_ids)
 
         result_text = "✅ 正解です！" if correct else f"❌ 不正解です。正解は **{question['answer']}** です。"
         await interaction.response.send_message(result_text, ephemeral=True)
@@ -88,7 +88,7 @@ class ShowAnswerButton(ui.Button):
 
     async def callback(self, interaction: discord.Interaction):
         message_id = interaction.message.id
-        state = get_view_state(message_id)
+        state = await get_view_state(message_id)
         if state is None:
             await interaction.response.send_message(
                 "この質問の情報が見つかりません。", ephemeral=True
@@ -109,38 +109,38 @@ class DailyQuestion(commands.Cog):
         self.bot = bot
         self.channel_id = channel_id
         times = SCHEDULE_MAP.get(daily_count, SCHEDULE_MAP[1])
-        self.daily_task = tasks.loop(time=times)(self._task_body)
+        self.daily_task = tasks.loop(time=times)(self.post_question)
         self.daily_task.before_loop(self._before_loop)
         self.daily_task.start()
 
     def cog_unload(self):
         self.daily_task.cancel()
 
-    async def _task_body(self):
-        await self.post_question()
-
     async def _before_loop(self):
         await self.bot.wait_until_ready()
 
     async def post_question(self):
-        channel = self.bot.get_channel(self.channel_id)
-        if channel is None:
-            print(f"チャンネルID {self.channel_id} が見つかりません。")
-            return
+        try:
+            channel = self.bot.get_channel(self.channel_id)
+            if channel is None:
+                print(f"[ERROR] チャンネルID {self.channel_id} が見つかりません。")
+                return
 
-        question = get_today_question()
-        choices_text = "\n".join(
-            [f"　**{k}**: {v}" for k, v in question["choices"].items()]
-        )
-        content = (
-            f"**今日の基本情報一問一答**\n\n"
-            f"**Q. {question['question']}**\n\n"
-            f"{choices_text}"
-        )
+            question = await get_today_question()
+            choices_text = "\n".join(
+                [f"　**{k}**: {v}" for k, v in question["choices"].items()]
+            )
+            content = (
+                f"**今日の基本情報一問一答**\n\n"
+                f"**Q. {question['question']}**\n\n"
+                f"{choices_text}"
+            )
 
-        view = AnswerView(question)
-        message = await channel.send(content=content, view=view)
-        save_view_state(message.id, question["id"], [], [])
+            view = AnswerView(question)
+            message = await channel.send(content=content, view=view)
+            await save_view_state(message.id, question["id"], [], [])
+        except Exception as e:
+            print(f"[ERROR] post_question で例外が発生しました: {e}")
 
 
 async def setup(bot: commands.Bot, channel_id: int, daily_count: int):
