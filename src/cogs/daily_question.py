@@ -2,7 +2,12 @@ import discord
 from discord.ext import commands, tasks
 from discord import ui
 from datetime import time, timezone, timedelta
-from utils.question_manager import get_today_question
+from utils.question_manager import (
+    get_today_question,
+    get_question_by_id,
+    get_view_state,
+    save_view_state,
+)
 
 JST = timezone(timedelta(hours=9))
 
@@ -17,72 +22,80 @@ SCHEDULE_MAP = {
 
 
 class AnswerView(ui.View):
-    def __init__(self, question: dict):
+    def __init__(self, question: dict = None):
         super().__init__(timeout=None)
-        self.question = question
-        self.answered_users: set = set()
-        self.top_users: list = []  # 正答者リスト（最大3名）
-        self.message: discord.Message = None
-
         for label in ["A", "B", "C", "D"]:
-            self.add_item(AnswerButton(label, question, self))
-
-        self.add_item(ShowAnswerButton(question, self))
+            choice_text = question["choices"][label] if question else ""
+            self.add_item(AnswerButton(label, choice_text))
+        self.add_item(ShowAnswerButton())
 
 
 class AnswerButton(ui.Button):
-    def __init__(self, label: str, question: dict, view: AnswerView):
-        choice_text = question["choices"][label]
+    def __init__(self, label: str, choice_text: str = ""):
         super().__init__(
-            label=f"{label}: {choice_text}",
+            label=f"{label}: {choice_text}" if choice_text else label,
             style=discord.ButtonStyle.primary,
             custom_id=f"answer_{label}"
         )
         self.choice = label
-        self.question = question
-        self.answer_view = view
 
     async def callback(self, interaction: discord.Interaction):
-        user = interaction.user
+        message_id = interaction.message.id
+        state = get_view_state(message_id)
+        if state is None:
+            await interaction.response.send_message(
+                "この質問の情報が見つかりません。", ephemeral=True
+            )
+            return
 
-        if user.id in self.answer_view.answered_users:
+        user = interaction.user
+        answered_users = state["answered_users"]
+        if user.id in answered_users:
             await interaction.response.send_message(
                 "すでに回答済みです。", ephemeral=True
             )
             return
 
-        self.answer_view.answered_users.add(user.id)
-        correct = self.choice == self.question["answer"]
+        question = get_question_by_id(state["question_id"])
+        answered_users.append(user.id)
+        correct = self.choice == question["answer"]
 
-        if correct and len(self.answer_view.top_users) < 3:
-            self.answer_view.top_users.append(user)
+        top_user_ids = state["top_user_ids"]
+        if correct and len(top_user_ids) < 3:
+            top_user_ids.append(user.id)
             medals = ["🥇", "🥈", "🥉"]
             ranking_lines = "\n".join(
-                f"{medals[i]} **{u.mention}**"
-                for i, u in enumerate(self.answer_view.top_users)
+                f"{medals[i]} <@{uid}>"
+                for i, uid in enumerate(top_user_ids)
             )
-            original = self.answer_view.message
-            # 既存のランキング部分を除いたベースコンテンツを取得
-            base_content = original.content.split("\n\n🏆")[0]
+            base_content = interaction.message.content.split("\n\n🏆")[0]
             new_content = f"{base_content}\n\n🏆 **正答ランキング**\n{ranking_lines}"
-            await original.edit(content=new_content)
+            await interaction.message.edit(content=new_content)
 
-        result_text = "✅ 正解です！" if correct else f"❌ 不正解です。正解は **{self.question['answer']}** です。"
+        save_view_state(message_id, state["question_id"], answered_users, top_user_ids)
+
+        result_text = "✅ 正解です！" if correct else f"❌ 不正解です。正解は **{question['answer']}** です。"
         await interaction.response.send_message(result_text, ephemeral=True)
 
 
 class ShowAnswerButton(ui.Button):
-    def __init__(self, question: dict, view: AnswerView):
+    def __init__(self):
         super().__init__(
             label="答えを見る",
             style=discord.ButtonStyle.secondary,
             custom_id="show_answer"
         )
-        self.question = question
-        self.answer_view = view
 
     async def callback(self, interaction: discord.Interaction):
-        q = self.question
+        message_id = interaction.message.id
+        state = get_view_state(message_id)
+        if state is None:
+            await interaction.response.send_message(
+                "この質問の情報が見つかりません。", ephemeral=True
+            )
+            return
+
+        q = get_question_by_id(state["question_id"])
         answer_text = (
             f"**正解: {q['answer']}**\n"
             f"{q['choices'][q['answer']]}\n\n"
@@ -127,8 +140,10 @@ class DailyQuestion(commands.Cog):
 
         view = AnswerView(question)
         message = await channel.send(content=content, view=view)
-        view.message = message
+        save_view_state(message.id, question["id"], [], [])
 
 
 async def setup(bot: commands.Bot, channel_id: int, daily_count: int):
+    # 再起動後もボタンを有効にするためパーシステントビューを登録
+    bot.add_view(AnswerView())
     await bot.add_cog(DailyQuestion(bot, channel_id, daily_count))
