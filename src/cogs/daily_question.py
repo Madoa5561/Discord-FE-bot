@@ -21,7 +21,7 @@ class AnswerView(ui.View):
         super().__init__(timeout=None)
         self.question = question
         self.answered_users: set = set()
-        self.fastest_user = None
+        self.top_users: list = []  # 正答者リスト（最大3名）
         self.message: discord.Message = None
 
         for label in ["A", "B", "C", "D"]:
@@ -54,11 +54,17 @@ class AnswerButton(ui.Button):
         self.answer_view.answered_users.add(user.id)
         correct = self.choice == self.question["answer"]
 
-        if correct and self.answer_view.fastest_user is None:
-            self.answer_view.fastest_user = user
+        if correct and len(self.answer_view.top_users) < 3:
+            self.answer_view.top_users.append(user)
+            medals = ["🥇", "🥈", "🥉"]
+            ranking_lines = "\n".join(
+                f"{medals[i]} **{u.mention}**"
+                for i, u in enumerate(self.answer_view.top_users)
+            )
             original = self.answer_view.message
-            original_content = original.content
-            new_content = f"{original_content}\n\n🏆 **最速正答者: {user.mention}**"
+            # 既存のランキング部分を除いたベースコンテンツを取得
+            base_content = original.content.split("\n\n🏆")[0]
+            new_content = f"{base_content}\n\n🏆 **正答ランキング**\n{ranking_lines}"
             await original.edit(content=new_content)
 
         result_text = "✅ 正解です！" if correct else f"❌ 不正解です。正解は **{self.question['answer']}** です。"
